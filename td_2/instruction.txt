@@ -1,0 +1,2 @@
+you must change the extension of the file from c to cu
+because we define the gpu kernel in this file 
