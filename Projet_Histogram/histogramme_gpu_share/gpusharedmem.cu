@@ -109,14 +109,14 @@ int main(int argc, char *argv[]){
 	int dt =32;	
 	for(int i =0;i< NBR;i++){
 
-        if(i>=0 && i<= 31 && (i+dt != 42) && (i+dt != 36))
+        if((i>=0 && i<= 31 && (i+dt != 42) && (i+dt != 36)) || (i>58 && i<=64) )
             fprintf(f_output, "%c:%d\n",i+dt,histo[i]);
 
         if(i>31 && i<= 58 )
 	    fprintf(f_output, "%c:%d\n",i+dt+32,histo[i]);
 	
-        if(i> 58 && i <=64)
-            fprintf(f_output, "%c:%d\n",i+dt,histo[i]);	
+       // if(i> 58 && i <=64)
+         //   fprintf(f_output, "%c:%d\n",i+dt,histo[i]);	
         
 	if(i>64)
             fprintf(f_output, "%c:%d\n",i+dt+26,histo[i]);
