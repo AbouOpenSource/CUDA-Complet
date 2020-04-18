@@ -1,20 +1,29 @@
-#include "util.h"
-
-#define SIZE (100*1024*1024)
-
+#include <stdio.h>
+#define NBR 68
 __global__ void histo_kernel(unsigned char *buffer,long size, unsigned int *histo){
 	
-	__shared__ unsigned int temp[256];
+	 __shared__ unsigned int temp[68];
+        int dt = 32;
 	temp[threadIdx.x]=0;
-	int i = threadIdx.x + blockIdx.x *blockDim.x;
-	int offset = blockDim.x *gridDim.x;
-	while(i<size){
-		atomicAdd(&(histo[buffer[i]]),1);
-		i+=offset;
-	}
-	
-	__syncthreads();
-	atomicAdd( &(histo[threadIdx.x]), temp[threadIdx.x] );
+        int i = threadIdx.x + blockIdx.x *blockDim.x;
+        int offset = blockDim.x *gridDim.x;
+        while(i<size){
+                
+            if (buffer[i] >= 32 && buffer[i] < 97)
+                   //  histo[buffer[i]-dt]++;
+            	atomicAdd(&temp[buffer[i]-dt],1);
+	    if (buffer[i] >=97 && buffer[i] <= 122)
+                atomicAdd(&temp[buffer[i] -dt -32],1);
+		   // histo[buffer[i] - dt - 32]++;
+            if (buffer[i] > 122 && buffer[i] <= 127 )
+                   // histo[buffer[i] - dt - 32 - 26]++;
+		atomicAdd(&temp[buffer[i]-dt -32-26],1);
+                   i+=offset;
+        }
+
+        __syncthreads();
+        atomicAdd( &(histo[threadIdx.x]), temp[threadIdx.x] );
+
 
 }
 
@@ -26,18 +35,22 @@ int main(int argc, char *argv[]){
 	
 	
 	
-	        if(argc <= 2){
-        fprintf(stderr, "Arguments non valide");
-        return 1;
+	if(argc <= 2){
+        	fprintf(stderr, "Arguments non valide");
+        	return 1;
         }
-        FILE *f_input;
+        /*For file input file and output file*/
+	FILE *f_input;
         FILE *f_output;
-
+	/*Will content the number of char in the input file*/
         long lSize;
-        char *buffer;
-
-        f_input = fopen ( argv[1] , "r" );
+        /*will content the file in char format*/
+	char *buffer;
+	/*Open the */
+        f_input = fopen ( argv[1] ,"r" );
         f_output = fopen( argv[2],"w");
+
+
         if( !f_input ) perror(argv[1]),exit(1);
 
 
@@ -45,7 +58,7 @@ int main(int argc, char *argv[]){
         lSize = ftell( f_input );
         rewind( f_input );
 
-        printf("The size is : %li", lSize);
+       
 
         //buffer = calloc( 1, lSize+1 );
         buffer =(char*) malloc(lSize);
@@ -59,44 +72,71 @@ int main(int argc, char *argv[]){
 	
 	
 	
-	
+	/*Create event for co;pute running time*/
 	cudaEvent_t start, stop;
-	HANDLE_ERROR( cudaEventCreate( &start ));
-	HANDLE_ERROR( cudaEventCreate( &stop ));    
-	HANDLE_ERROR( cudaEventRecord( start, 0));
+        cudaEventCreate( &start );
+	cudaEventCreate( &stop );    
+        /*Launch event to specify the start of running*/
+	cudaEventRecord( start, 0);
 
+
+	/*allocate device memory*/
 	unsigned char *dev_buffer;
 	unsigned int *dev_histo;
+	/*Give space in Global memory of GPU to store different variable*/
+	cudaMalloc( (void**)&dev_buffer, lSize);
+	/*Copy from CPU Global memory to GPU Global memory*/
+	cudaMemcpy( dev_buffer, buffer, lSize, cudaMemcpyHostToDevice  );    
+	/*Create space for histo variable and initialize at 0 each slopt*/
+	cudaMalloc( (void**)&dev_histo, NBR * sizeof( long));    
+	cudaMemset( dev_histo, 0, NBR * sizeof( int ));    
 
-	HANDLE_ERROR( cudaMalloc( (void**)&dev_buffer, lSize));
-	HANDLE_ERROR( cudaMemcpy( dev_buffer, buffer, lSize, cudaMemcpyHostToDevice ) );    
-	HANDLE_ERROR( cudaMalloc( (void**)&dev_histo, 256 * sizeof( long )));    
-	HANDLE_ERROR( cudaMemset( dev_histo, 0, 256 * sizeof( int )));
-
-	cudaDeviceProp  prop;    
-	HANDLE_ERROR( cudaGetDeviceProperties( &prop, 0 ) );
-	int blocks = prop.multiProcessorCount;    
-	histo_kernel<<<blocks*2,256>>>( dev_buffer, lSize, dev_histo );
+	/*Define of the configuration for kernel running*/
+ 	cudaDeviceProp  proprieties;
+        cudaGetDeviceProperties( &proprieties, 0  );
+        int multiproc = proprieties.multiProcessorCount;
+        dim3  blocks(multiproc*2,1,1);
+        dim3  threads(NBR, 1, 1);
 
 
 
-	unsigned int histo[256];    
-	HANDLE_ERROR( cudaMemcpy( histo, dev_histo,256 * sizeof( int ),cudaMemcpyDeviceToHost));
-	for(int i =32;i< 128;i++){
-            printf("%c:%d\n",i,histo[i]);
-            fprintf(f_output, "%c:%d\n",i,histo[i]);
-        }
+	histo_kernel<<<blocks,threads>>>( dev_buffer, lSize, dev_histo );
 
-	HANDLE_ERROR( cudaEventRecord( stop, 0 ) );    
-	HANDLE_ERROR( cudaEventSynchronize( stop ) );
-	float   elapsedTime;    
-	HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime, start, stop ) );    
-	printf( "Time to generate:  %3.1f ms\n", elapsedTime );
-		
 
-	HANDLE_ERROR( cudaEventDestroy( start ) );    
-	HANDLE_ERROR( cudaEventDestroy( stop ) );    
+	/*Define histo vqriqble and copy on GPU global memory*/
+	unsigned int histo[NBR];    
+	cudaMemcpy( histo, dev_histo,NBR * sizeof( int ),cudaMemcpyDeviceToHost);
+	int dt =32;	
+	for(int i =0;i< NBR;i++){
+
+        if(i>=0 && i<= 31 && (i+dt != 42) && (i+dt != 36))
+            fprintf(f_output, "%c:%d\n",i+dt,histo[i]);
+
+        if(i>31 && i<= 58 )
+	    fprintf(f_output, "%c:%d\n",i+dt+32,histo[i]);
 	
+        if(i> 58 && i <=64)
+            fprintf(f_output, "%c:%d\n",i+dt,histo[i]);	
+        
+	if(i>64)
+            fprintf(f_output, "%c:%d\n",i+dt+26,histo[i]);
+ 
+
+	}
+	
+	/*Get event at the end of loop*/
+	cudaEventRecord( stop, 0  );    
+	cudaEventSynchronize( stop );
+	float   elapsedTime;    
+        cudaEventElapsedTime( &elapsedTime, start, stop );    
+	printf( "Time of running :  %3.1f ms\n", elapsedTime );
+		
+	/*Destroy event for running time*/
+	cudaEventDestroy( start );    
+	cudaEventDestroy( stop );    
+	
+	
+	/*Free memory and close the files**/
 	cudaFree( dev_histo );    
 	cudaFree( dev_buffer );    
 	fclose(f_input);

@@ -2,15 +2,26 @@
 
 #define START 32 
 #define END 126
-#define NBR 96 
+#define NBR 68 
 
 __global__ void histo_kernel(unsigned char *buffer,long size, unsigned int *histo){
 
+	int dt = 32;
 	int i = threadIdx.x + blockIdx.x *blockDim.x;
 	int stride = blockDim.x *gridDim.x;
 	while(i<size){
-		atomicAdd(&(histo[buffer[i]]),1);
-		i+=stride;
+		
+		if (buffer[i] >= 32 && buffer[i] < 97)
+                
+            		atomicAdd(&(histo[buffer[i]-dt]),1);	
+		if (buffer[i] >=97 && buffer[i] <= 122)
+                	atomicAdd(&(histo[buffer[i]-dt-32]),1);
+	
+            	if (buffer[i] > 122 && buffer[i] <= 127 )
+                	atomicAdd(&(histo[buffer[i]-dt -32 -26]),1);
+			
+		
+			i+=stride;
 	}
 
 }
@@ -73,13 +84,25 @@ int main(int argc, char *argv[]){
 
 
 
-	unsigned int histo[256];    
+	unsigned int histo[NBR];    
 
-	cudaMemcpy( histo, dev_histo,256 * sizeof( int ),cudaMemcpyDeviceToHost);
+	cudaMemcpy( histo, dev_histo,NBR * sizeof( int ),cudaMemcpyDeviceToHost);
+	int dt =32;
+	for(int i =0;i< 68;i++){
+		
+        if(i>=0 && i<= 31&& (i+dt != 42) && (i+dt != 36)){
+            printf("%c:%d\n",i+dt,histo[i]);
+        }
 
-	for(int i =32;i< 128;i++){
-		printf("%c:%d\n",i,histo[i]);
-		fprintf(f_output, "%c:%d\n",i,histo[i]);
+        if(i>31 && i<= 57 ){
+            printf("%c:%d\n",i+dt+32,histo[i]);
+        }
+
+        if(i> 57 && i <=64)
+            printf("%c:%d\n",i+dt,histo[i]);
+
+        if(i>64)
+            printf("%c:%d\n",i+dt+26,histo[i]);
 	
 	}
 	cudaEventRecord( stop, 0 ) ;    

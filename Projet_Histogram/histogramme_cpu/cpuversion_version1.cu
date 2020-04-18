@@ -1,7 +1,6 @@
 #include<stdio.h>
 #define START 32 //first char to make hist ascii code
 #define STOP 127 //last char to make hist ascii code 
-#define NBR_CHAR 68
 int main(int argc, char** argv){
 
 	        if(argc <= 2){
@@ -23,7 +22,7 @@ int main(int argc, char** argv){
         lSize = ftell( f_input );
         rewind( f_input );
 
-        printf("The size is : %li\n", lSize);
+        printf("The size is : %li", lSize);
 
         buffer =(char*) malloc(lSize);
         if( !buffer ) fclose(f_input),fputs("memory alloc fails",stderr),exit(1);
@@ -32,40 +31,30 @@ int main(int argc, char** argv){
         if( 1!=fread( buffer , lSize, 1 , f_input) )
           fclose(f_input),free(buffer),fputs("entire read fails",stderr),exit(1);
 
-	unsigned int histo[NBR_CHAR];
-	unsigned int dt =32; 
-	for(int i=0; i<NBR_CHAR; i++)
-        
-		histo[i]=0;	
+	unsigned int histo[256];
+
+	for(int i=0; i<256; i++)
+        	histo[i]=0;
+	
+	/*Computing of the time*/
+//	std::clock_t c_start = std::clock();
+	
+	
 	/*Core of Algo compute a hist by increase hist array if char is occured**/
 	for(int i=0; i< lSize ;i++){
-		
-            if (buffer[i] >= 32 && buffer[i] < 97)
-                histo[buffer[i]-dt]++;
-            if (buffer[i] >=97 && buffer[i] <= 122)
-                histo[buffer[i] - dt - 32]++;
-            if (buffer[i] > 122 && buffer[i] <= 127 )
-                histo[buffer[i] - dt - 32 - 26]++;
-
-	}	
-
-
-	for(int i=0 ; i<NBR_CHAR ; i++){
+		histo[buffer[i]]++;
+	}
+	/*End of excution*/
 	
-        	if(i>=0 && i<= 31&& (i+dt != 42) && (i+dt != 36)){
-            		printf("%d:%c:%d\n",i+dt,i+dt,histo[i]);
- 
-		}
+//	std::clock_t c_end = std::clock();
+  //  	long time_elapsed_ms = 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC;
+   //     std::cout << "CPU time used: " << time_elapsed_ms << " ms\n";
 
-        	if(i>31 && i<= 57 ){
-            		printf("%d:%c:%d\n",i+dt+32,i+dt+32,histo[i]);
-        	}
 
-        	if(i> 57 && i <=64)
-            		printf("%d:%c:%d\n",i+dt,i+dt,histo[i]);
 
-        	if(i>64)
-            		printf("%d:%c:%d\n",i+dt+26,i+dt+26,histo[i]);
+	for(int i=START; i<STOP;i++){
+		printf("%c:%d\n",i,histo[i]);
+	        fprintf(f_output, "%c:%d\n",i,histo[i]);
 
 	}
 	
