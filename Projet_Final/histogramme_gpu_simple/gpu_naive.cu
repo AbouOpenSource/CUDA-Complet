@@ -10,7 +10,7 @@ __global__ void histo_kernel(unsigned char *buffer,long size, unsigned int *hist
 	int i = threadIdx.x + blockIdx.x *blockDim.x;
 	int stride = blockDim.x *gridDim.x;
 	while(i<size){
-		
+	/*	
 		if (buffer[i] >= 32 && buffer[i] < 97)
                 
             		atomicAdd(&(histo[buffer[i]-dt]),1);	
@@ -19,8 +19,19 @@ __global__ void histo_kernel(unsigned char *buffer,long size, unsigned int *hist
 	
             	if (buffer[i] > 122 && buffer[i] <= 127 )
                 	atomicAdd(&(histo[buffer[i]-dt -32 -26]),1);
-			
-		
+	*/
+
+
+		if (buffer[i] >= 32 && buffer[i] < 97)
+		{
+		atomicAdd(&(histo[buffer[i]-dt]),1);
+
+		}else if (buffer[i] >=97 && buffer[i] <= 122)
+		{       atomicAdd(&(histo[buffer[i]-dt-32]),1);
+		}
+		else{
+                        atomicAdd(&(histo[buffer[i]-dt -32 -26]),1);		
+		}
 			i+=stride;
 	}
 
@@ -68,11 +79,11 @@ int main(int argc, char *argv[]){
 
 	unsigned char *dev_buffer;
 	unsigned int *dev_histo;
-
-	 cudaMalloc( (void**)&dev_buffer, lSize);
-	 cudaMemcpy( dev_buffer, buffer, lSize, cudaMemcpyHostToDevice );    
-	 cudaMalloc( (void**)&dev_histo, 256 * sizeof( long ));    
-	 cudaMemset( dev_histo, 0, 256 * sizeof( int ));
+	/*Allocate device memory*/
+	cudaMalloc( (void**)&dev_buffer, lSize);
+	cudaMemcpy( dev_buffer, buffer, lSize, cudaMemcpyHostToDevice );    
+	cudaMalloc( (void**)&dev_histo, 256 * sizeof( long ));    
+	cudaMemset( dev_histo, 0, 256 * sizeof( int ));
 
 	cudaDeviceProp  prop;    
 	cudaGetDeviceProperties( &prop, 0  );
@@ -89,8 +100,8 @@ int main(int argc, char *argv[]){
 	cudaMemcpy( histo, dev_histo,NBR * sizeof( int ),cudaMemcpyDeviceToHost);
 	int dt =32;
 	for(int i =0;i< 68;i++){
-		
-        if(i>=0 && i<= 31&& (i+dt != 42) && (i+dt != 36)){
+	/*	
+        if((i>=0 && i<= 31&& (i+dt != 42) && (i+dt != 36))|| (i>57 && i<=64) ){
             printf("%c:%d\n",i+dt,histo[i]);
         }
 
@@ -98,12 +109,20 @@ int main(int argc, char *argv[]){
             printf("%c:%d\n",i+dt+32,histo[i]);
         }
 
-        if(i> 57 && i <=64)
-            printf("%c:%d\n",i+dt,histo[i]);
-
         if(i>64)
             printf("%c:%d\n",i+dt+26,histo[i]);
-	
+	*/
+
+	if((i>=0 && i<= 31&& (i+dt != 42) && (i+dt != 36))|| (i>57 && i<=64) ){
+            fprintf(f_output, "%c:%d\n",i+dt,histo[i]);
+	//	printf("%c:%d\n",i+dt,histo[i]);
+        }else if (i>31 && i<= 57 ){
+            fprintf(f_output, "%c:%d\n",i+dt+32,histo[i]);
+	//	printf("%c:%d\n",i+dt+32,histo[i]);
+        }else
+	    fprintf(f_output, "%c:%d\n",i+dt+26,histo[i]);
+    	//	printf("%c:%d\n",i+dt+26,histo[i]);
+
 	}
 	cudaEventRecord( stop, 0 ) ;    
 	cudaEventSynchronize( stop );
@@ -111,7 +130,7 @@ int main(int argc, char *argv[]){
 	cudaEventElapsedTime( &elapsedTime, start, stop  );    
 	printf( "Time to generate:  %3.1f ms\n", elapsedTime );
 
-
+	/*Delete event use for to get running time*/
 	cudaEventDestroy( start ) ;    
 	cudaEventDestroy( stop );    
 

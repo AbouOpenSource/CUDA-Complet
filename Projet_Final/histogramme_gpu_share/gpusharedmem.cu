@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){
  	cudaDeviceProp  proprieties;
         cudaGetDeviceProperties( &proprieties, 0  );
         int multiproc = proprieties.multiProcessorCount;
-        dim3  blocks(multiproc*2,1,1);
+        dim3  blocks(multiproc*32,1,1);
         dim3  threads(NBR, 1, 1);
 
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]){
 	cudaMemcpy( histo, dev_histo,NBR * sizeof( int ),cudaMemcpyDeviceToHost);
 	int dt =32;	
 	for(int i =0;i< NBR;i++){
-
+/*
         if((i>=0 && i<= 31 && (i+dt != 42) && (i+dt != 36)) || (i>58 && i<=64) )
             fprintf(f_output, "%c:%d\n",i+dt,histo[i]);
 
@@ -121,6 +121,20 @@ int main(int argc, char *argv[]){
 	if(i>64)
             fprintf(f_output, "%c:%d\n",i+dt+26,histo[i]);
  
+*/
+
+
+
+	 if((i>=0 && i<= 31 && (i+dt != 42) && (i+dt != 36)) || (i>58 && i<=64) )
+            fprintf(f_output, "%c:%d\n",i+dt,histo[i]);
+	 else if(i>31 && i<= 58 )
+            fprintf(f_output, "%c:%d\n",i+dt+32,histo[i]);   
+	 else
+            fprintf(f_output, "%c:%d\n",i+dt+26,histo[i]);
+
+
+
+
 
 	}
 	
